@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+next-env.d.ts
+*.tsbuildinfo
+.env*.local
+.env
+# Données KYC (données personnelles : ne jamais versionner)
+data/kyc/*
+!data/kyc/.gitkeep

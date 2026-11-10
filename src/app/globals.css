@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* Charte Airtel : rouge signature, blanc, gris anthracite, formes arrondies. */
+@theme inline {
+  --color-airtel: #e40000;
+  --color-airtel-dark: #b30000;
+  --color-airtel-50: #fff2f2;
+  --color-airtel-100: #ffe0e0;
+  --color-ink: #1d1d1b;
+  --color-muted: #6b6b70;
+  --color-line: #e7e7ea;
+  --color-surface: #f6f6f7;
+  --color-success: #0a8f4e;
+  --color-success-50: #e9f8f0;
+  --color-warning: #b26b00;
+  --color-warning-50: #fff6e5;
+  --font-sans: var(--font-brand), ui-rounded, "Segoe UI", system-ui, sans-serif;
+  --radius-card: 1.25rem;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+/* Ligne laser du scanner de document */
+@keyframes scan-line {
+  0% { top: 4%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 96%; opacity: 0; }
+}
+.animate-scan-line {
+  animation: scan-line 1.4s ease-in-out infinite;
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.animate-pop-in {
+  animation: pop-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+@keyframes fade-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.animate-fade-up {
+  animation: fade-up 0.3s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scan-line, .animate-pop-in, .animate-fade-up { animation: none; }
+}
