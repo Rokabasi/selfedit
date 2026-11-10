@@ -25,5 +25,10 @@ export async function POST(req: Request) {
       : apiError(400, "OTP_INVALID", `Code incorrect. ${result.remaining} tentative(s) restante(s).`);
   }
 
-  return NextResponse.json(issueSessionToken(msisdn));
+  try {
+    return NextResponse.json(issueSessionToken(msisdn));
+  } catch (err) {
+    console.error("[otp] configuration serveur invalide :", (err as Error).message);
+    return apiError(500, "SERVER_CONFIG", "Service momentanément indisponible. Réessayez plus tard.");
+  }
 }
