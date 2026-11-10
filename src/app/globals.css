@@ -20,6 +20,17 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
+  font-size: 15px; /* échelle globale plus compacte (rem) */
+}
+
+/* Tailwind v4 remet le curseur par défaut sur les boutons : on rétablit la main. */
+button:not(:disabled),
+[role="button"],
+label[for],
+select,
+summary,
+a {
+  cursor: pointer;
 }
 
 body {

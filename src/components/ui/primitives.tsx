@@ -19,8 +19,8 @@ export function Button({ variant = "primary", size = "lg", loading, block, class
       {...rest}
       disabled={disabled || loading}
       className={cx(
-        "inline-flex items-center justify-center gap-2 rounded-full font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-airtel/25 disabled:cursor-not-allowed disabled:opacity-50",
-        size === "lg" ? "h-12 px-6 text-base" : "h-10 px-4 text-sm",
+        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-full font-bold whitespace-nowrap transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-airtel/25 disabled:cursor-not-allowed disabled:opacity-50",
+        size === "lg" ? "h-10 px-5 text-sm" : "h-9 px-4 text-[13px]",
         variant === "primary" && "bg-airtel text-white shadow-[0_6px_16px_-6px_rgb(228_0_0/0.6)] hover:bg-airtel-dark active:scale-[0.98]",
         variant === "secondary" && "border-2 border-airtel bg-white text-airtel hover:bg-airtel-50",
         variant === "ghost" && "text-ink hover:bg-surface",
@@ -59,8 +59,8 @@ export function Field({ label, error, hint, optional, children, className }: Fie
   const id = useId();
   const descId = `${id}-desc`;
   return (
-    <div className={cx("flex flex-col gap-1.5", className)}>
-      <label htmlFor={id} className="text-sm font-bold text-ink">
+    <div className={cx("flex flex-col gap-1", className)}>
+      <label htmlFor={id} className="text-xs font-bold text-ink">
         {label}
         {optional ? (
           <span className="ml-1.5 font-semibold text-muted">(facultatif)</span>
@@ -70,7 +70,7 @@ export function Field({ label, error, hint, optional, children, className }: Fie
       </label>
       {children({ id, "aria-invalid": Boolean(error), "aria-describedby": error || hint ? descId : undefined })}
       {error ? (
-        <p id={descId} role="alert" className="text-sm font-semibold text-airtel">{error}</p>
+        <p id={descId} role="alert" className="text-xs font-semibold text-airtel">{error}</p>
       ) : hint ? (
         <p id={descId} className="text-xs text-muted">{hint}</p>
       ) : null}
@@ -79,7 +79,7 @@ export function Field({ label, error, hint, optional, children, className }: Fie
 }
 
 const controlBase =
-  "h-12 w-full rounded-xl border-2 bg-white px-4 text-base text-ink outline-none transition placeholder:text-muted/60 focus:border-airtel focus:ring-4 focus:ring-airtel/10 aria-[invalid=true]:border-airtel aria-[invalid=true]:bg-airtel-50/40";
+  "h-10 w-full rounded-lg border bg-white px-3 text-sm text-ink outline-none transition placeholder:text-muted/60 focus:border-airtel focus:ring-3 focus:ring-airtel/10 aria-[invalid=true]:border-airtel aria-[invalid=true]:bg-airtel-50/40";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input(
   { className, ...rest },
@@ -124,7 +124,7 @@ export function CheckboxCard({
       <label
         htmlFor={id}
         className={cx(
-          "flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition",
+          "flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm transition",
           checked ? "border-airtel bg-airtel-50" : "border-line bg-white hover:border-muted/40",
           error && !checked && "border-airtel/60",
         )}
@@ -133,7 +133,7 @@ export function CheckboxCard({
         <span
           aria-hidden
           className={cx(
-            "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 transition peer-focus-visible:ring-4 peer-focus-visible:ring-airtel/25",
+            "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition peer-focus-visible:ring-4 peer-focus-visible:ring-airtel/25",
             checked ? "border-airtel bg-airtel text-white" : "border-muted/50 bg-white",
           )}
         >
@@ -143,7 +143,7 @@ export function CheckboxCard({
         </span>
         <span className="flex-1">
           <span className="flex items-center gap-2 font-bold text-ink">{icon}{title}</span>
-          {description && <span className="mt-0.5 block text-sm text-muted">{description}</span>}
+          {description && <span className="mt-0.5 block text-xs text-muted">{description}</span>}
         </span>
       </label>
       {error && !checked && <p role="alert" className="mt-1 text-sm font-semibold text-airtel">{error}</p>}

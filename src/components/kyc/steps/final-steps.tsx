@@ -28,7 +28,7 @@ export function ConsentStep() {
   }
 
   return (
-    <StepLayout title="Consentement" description="Lisez attentivement les conditions ci-dessous." onBack={back} onNext={submit} nextLabel="J'accepte et je continue">
+    <StepLayout title="Consentement" description="Lisez attentivement les conditions ci-dessous." onBack={back} onNext={submit} nextLabel="J'accepte">
       <div className="max-h-72 overflow-y-auto rounded-card border border-line bg-white p-4 sm:p-5" tabIndex={0} aria-label="Conditions légales">
         <LegalText wantsAirtelMoney={wantsAM} />
         <p className="mt-4 text-xs text-muted">Version {CONSENT_VERSION}</p>
@@ -92,7 +92,7 @@ export function ReviewStep() {
       description="Relisez attentivement avant de soumettre votre dossier."
       onBack={back}
       onNext={() => void submit()}
-      nextLabel="Soumettre mon dossier"
+      nextLabel="Soumettre"
       loading={loading}
       asForm={false}
     >
@@ -209,13 +209,13 @@ export function DoneStep() {
         </svg>
       </div>
       <div className="space-y-2">
-        <h2 className="text-2xl font-black">Dossier soumis avec succès</h2>
+        <h2 className="text-xl font-black">Dossier soumis avec succès</h2>
         <p className="text-muted">
           Merci ! Votre identification est en cours de vérification. Vous recevrez un SMS au {formatMsisdn(state.msisdn)} dès
           qu&apos;elle sera validée.
         </p>
       </div>
-      <div className="mx-auto max-w-sm space-y-3 rounded-card border border-line bg-white p-5 text-left">
+      <div className="mx-auto max-w-sm space-y-3 rounded-card border border-line bg-white p-4 text-left text-sm">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted">Référence</span>
           <span className="font-mono font-extrabold">{result.reference}</span>

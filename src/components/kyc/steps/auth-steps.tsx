@@ -51,7 +51,7 @@ export function PhoneStep() {
       <Field label="Numéro Airtel" error={error ?? undefined} hint="Le code de vérification sera envoyé par SMS à ce numéro.">
         {(p) => (
           <div className="flex gap-2">
-            <span className="flex h-12 shrink-0 items-center gap-1.5 rounded-xl border-2 border-line bg-surface px-3 font-bold">
+            <span className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-sm font-bold">
               <span aria-hidden>🇨🇩</span> +243
             </span>
             <Input
@@ -174,7 +174,7 @@ export function OtpStep() {
             aria-invalid={Boolean(error)}
             autoFocus={i === 0}
             className={cx(
-              "h-16 w-14 rounded-2xl border-2 bg-white text-center text-2xl font-black outline-none transition focus:border-airtel focus:ring-4 focus:ring-airtel/10",
+              "h-12 w-11 rounded-xl border-2 bg-white text-center text-xl font-black outline-none transition focus:border-airtel focus:ring-4 focus:ring-airtel/10",
               error ? "border-airtel" : d ? "border-ink/40" : "border-line",
             )}
           />
