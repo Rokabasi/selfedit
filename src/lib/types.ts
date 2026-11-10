@@ -19,9 +19,9 @@ export interface KycHistoryEntry {
   note?: string;
 }
 
-/** Dossier KYC tel que persisté dans data/kyc/<msisdn>.json */
+/** Dossier KYC : un enregistrement (et un fichier JSON exportable) par numéro. */
 export interface KycRecord {
-  schemaVersion: 1;
+  schemaVersion: 2;
   reference: string;
   msisdn: string;
   status: KycStatus;
@@ -46,12 +46,12 @@ export interface KycRecord {
   /** Le PUK n'est jamais stocké en clair. */
   sim: { iccid: string; pukHash: string; pukHint: string };
   documents: {
-    front: { file: string; meta: ScanMeta };
-    back: { file: string; meta: ScanMeta } | null;
+    front: { dataUrl: string; meta: ScanMeta };
+    back: { dataUrl: string; meta: ScanMeta } | null;
   };
   liveness: {
     method: "face-mesh" | "guided";
-    selfieFile: string;
+    selfie: string;
     challenges: { type: ChallengeType; completedAt: number }[];
     durationMs: number;
   };
@@ -63,7 +63,6 @@ export interface KycRecord {
     biometrics: boolean;
     accuracy: boolean;
     airtelMoney: boolean;
-    ip: string | null;
     userAgent: string | null;
   };
   verification: {
@@ -74,8 +73,3 @@ export interface KycRecord {
   } | null;
   history: KycHistoryEntry[];
 }
-
-export type KycSummary = Pick<
-  KycRecord,
-  "reference" | "msisdn" | "status" | "createdAt" | "updatedAt" | "wantsAirtelMoney"
-> & { fullName: string; idType: IdType };

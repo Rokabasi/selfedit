@@ -1,4 +1,7 @@
 export const OTP_LENGTH = 4;
+/** Code OTP accepté (aucune passerelle SMS : vérification locale). */
+export const OTP_CODE = "1234";
+export const OTP_MAX_ATTEMPTS = 5;
 export const OTP_RESEND_SECONDS = 30;
 export const MIN_AGE = 18;
 export const CONSENT_VERSION = "CGU-SELFKYC-2026.11";

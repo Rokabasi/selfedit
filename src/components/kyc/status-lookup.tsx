@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Field, Input, StatusBadge } from "@/components/ui/primitives";
-import { ApiError, api } from "@/lib/client/api";
+import { getRecord } from "@/lib/kyc-db";
 import { formatMsisdn, normalizeMsisdn } from "@/lib/phone";
 import type { KycStatus } from "@/lib/types";
 
@@ -35,10 +35,22 @@ export function StatusLookup() {
       if (!msisdn) return setError("Numéro invalide, ex. 099 123 4567");
       setLoading(true);
       try {
-        setResult(await api<StatusResponse>(`/api/kyc/status?msisdn=${msisdn}`));
+        const r = await getRecord(msisdn);
+        if (!r) {
+          setError("Aucun dossier d'identification pour ce numéro sur cet appareil.");
+          return;
+        }
+        setResult({
+          msisdn,
+          reference: r.reference,
+          status: r.status,
+          submittedAt: r.createdAt,
+          updatedAt: r.updatedAt,
+          reason: r.status === "REJECTED" ? (r.verification?.reason ?? null) : null,
+        });
         router.replace(`/statut?msisdn=${msisdn}`, { scroll: false });
       } catch (err) {
-        setError(err instanceof ApiError && err.status === 404 ? "Aucun dossier d'identification pour ce numéro." : (err as Error).message);
+        setError((err as Error).message);
       } finally {
         setLoading(false);
       }

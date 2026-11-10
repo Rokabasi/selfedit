@@ -24,4 +24,4 @@ export function middleware(req: NextRequest) {
   });
 }
 
-export const config = { matcher: ["/backoffice/:path*", "/api/admin/:path*"] };
+export const config = { matcher: ["/backoffice/:path*"] };

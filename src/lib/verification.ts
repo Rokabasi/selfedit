@@ -1,27 +1,18 @@
-import { LIVENESS_CHALLENGE_COUNT, MIN_AGE, getIdType } from "@/lib/constants";
-import { ageFrom } from "@/lib/schemas";
-import type { KycRecord, VerificationCheck } from "@/lib/types";
-import { listRecords, getRecord } from "./storage";
+import { LIVENESS_CHALLENGE_COUNT, MIN_AGE, getIdType } from "./constants";
+import { ageFrom } from "./schemas";
+import type { KycRecord, VerificationCheck } from "./types";
 
 /**
- * Moteur de vérification du dossier. En mode démo, l'authentification documentaire
- * accepte toutes les pièces : elle serait ici remplacée par l'appel au fournisseur
- * (OCR/MRZ, contrôle des sécurités, matching visage ↔ photo de la pièce, CENI…).
+ * Contrôles du dossier, exécutés localement. L'authentification documentaire
+ * accepte toutes les pièces (démo) : à remplacer par un fournisseur (OCR/MRZ, face match…).
  */
-export async function runChecks(record: KycRecord): Promise<VerificationCheck[]> {
+export function runChecks(record: KycRecord, all: KycRecord[]): VerificationCheck[] {
   const idType = getIdType(record.identity.idType);
   const age = ageFrom(record.personal.birthDate);
   const lowQuality = [record.documents.front, record.documents.back].filter((d) => d && !d.meta.qualityOk).length;
-
-  // Même pièce d'identité déjà utilisée sur d'autres numéros (contrôle informatif).
-  const others = await listRecords();
-  const sameId = (
-    await Promise.all(
-      others
-        .filter((o) => o.msisdn !== record.msisdn && o.idType === record.identity.idType)
-        .map((o) => getRecord(o.msisdn)),
-    )
-  ).filter((r) => r?.identity.idNumber === record.identity.idNumber).length;
+  const sameId = all.filter(
+    (o) => o.msisdn !== record.msisdn && o.identity.idType === record.identity.idType && o.identity.idNumber === record.identity.idNumber,
+  ).length;
 
   return [
     {
@@ -60,15 +51,9 @@ export async function runChecks(record: KycRecord): Promise<VerificationCheck[]>
       detail:
         record.liveness.method === "face-mesh"
           ? `${record.liveness.challenges.length} défis réussis (détection faciale)`
-          : "Mode guidé sans détection automatique : contrôle visuel du selfie recommandé",
+          : "Mode guidé : contrôle visuel du selfie recommandé",
     },
-    {
-      id: "age",
-      label: `Âge minimum (${MIN_AGE} ans)`,
-      passed: age >= MIN_AGE,
-      blocking: true,
-      detail: `${age} ans`,
-    },
+    { id: "age", label: `Âge minimum (${MIN_AGE} ans)`, passed: age >= MIN_AGE, blocking: true, detail: `${age} ans` },
     {
       id: "sim",
       label: "Format ICCID / PUK",
@@ -80,10 +65,7 @@ export async function runChecks(record: KycRecord): Promise<VerificationCheck[]>
       id: "consent",
       label: "Consentements légaux",
       passed:
-        record.consent.terms &&
-        record.consent.privacy &&
-        record.consent.biometrics &&
-        record.consent.accuracy &&
+        record.consent.terms && record.consent.privacy && record.consent.biometrics && record.consent.accuracy &&
         (!record.wantsAirtelMoney || record.consent.airtelMoney),
       blocking: true,
       detail: `Version ${record.consent.version}`,

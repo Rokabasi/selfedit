@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Alert, Button, CheckboxCard, StatusBadge } from "@/components/ui/primitives";
-import { ApiError, api } from "@/lib/client/api";
 import { useZodForm } from "@/lib/client/use-zod-form";
 import { CONSENT_VERSION, LIVENESS_CHALLENGES, getIdType } from "@/lib/constants";
+import { createRecord } from "@/lib/kyc-db";
 import { formatMsisdn, normalizeMsisdn } from "@/lib/phone";
-import { consentSchemaFor, type ConsentInput } from "@/lib/schemas";
-import type { KycStatus } from "@/lib/types";
+import { consentSchemaFor, flattenIssues, submissionSchema, type ConsentInput } from "@/lib/schemas";
 import { LegalText } from "../legal-text";
 import { useKyc, type StepId } from "../kyc-store";
 import { StepLayout } from "../step-layout";
@@ -59,25 +58,28 @@ export function ReviewStep() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api<{ reference: string; status: KycStatus; createdAt: string }>("/api/kyc", {
-        token: state.token,
-        body: {
-          msisdn: state.msisdn,
-          identity: state.identity,
-          personal: state.personal,
-          sim: state.sim,
-          documents: state.documents,
-          liveness: state.liveness,
-          consent: { ...state.consent, version: CONSENT_VERSION },
-        },
-      });
-      dispatch({ type: "result", value: res });
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError({ message: err.message, fields: err.fields, sessionExpired: err.status === 401 });
-      } else {
-        setError({ message: "Erreur inattendue. Réessayez." });
+      if (!state.token || !state.tokenExpiresAt || state.tokenExpiresAt < Date.now()) {
+        setError({ message: "Votre session a expiré. Veuillez revalider votre numéro.", sessionExpired: true });
+        return;
       }
+      // Validation complète du dossier puis enregistrement local (aucune requête réseau).
+      const parsed = submissionSchema.safeParse({
+        msisdn: state.msisdn,
+        identity: state.identity,
+        personal: state.personal,
+        sim: state.sim,
+        documents: state.documents,
+        liveness: state.liveness,
+        consent: { ...state.consent, version: CONSENT_VERSION },
+      });
+      if (!parsed.success) {
+        setError({ message: "Certaines informations sont invalides", fields: flattenIssues(parsed.error) });
+        return;
+      }
+      const record = await createRecord(parsed.data, state.token);
+      dispatch({ type: "result", value: { reference: record.reference, status: record.status, createdAt: record.createdAt } });
+    } catch (err) {
+      setError({ message: err instanceof Error ? err.message : "Erreur inattendue. Réessayez." });
     } finally {
       setLoading(false);
     }

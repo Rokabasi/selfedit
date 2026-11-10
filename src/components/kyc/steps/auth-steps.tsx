@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Field, Input, cx } from "@/components/ui/primitives";
-import { ApiError, api } from "@/lib/client/api";
-import { OTP_LENGTH, OTP_RESEND_SECONDS } from "@/lib/constants";
+import { OTP_CODE, OTP_LENGTH, OTP_MAX_ATTEMPTS, OTP_RESEND_SECONDS } from "@/lib/constants";
+import { KycConflictError, assertCanStart } from "@/lib/kyc-db";
 import { formatMsisdn, isAirtelMsisdn, normalizeMsisdn } from "@/lib/phone";
 import { useKyc } from "../kyc-store";
 import { StepLayout } from "../step-layout";
@@ -26,12 +26,12 @@ export function PhoneStep() {
 
     setLoading(true);
     try {
-      await api("/api/otp/send", { body: { msisdn } });
+      await assertCanStart(msisdn); // contrôle local, aucune requête
       dispatch({ type: "msisdn", msisdn });
       next();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setBlocking({ title: err.code === "ALREADY_APPROVED" ? "Numéro déjà identifié" : "Dossier en cours", message: err.message });
+      if (err instanceof KycConflictError) {
+        setBlocking({ title: err.status === "APPROVED" ? "Numéro déjà identifié" : "Dossier en cours", message: err.message });
       } else {
         setError(err instanceof Error ? err.message : "Erreur inattendue");
       }
@@ -87,7 +87,6 @@ export function OtpStep() {
   const { state, dispatch, next, back } = useKyc();
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(OTP_RESEND_SECONDS);
   const [resent, setResent] = useState(false);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
@@ -98,21 +97,28 @@ export function OtpStep() {
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  async function verify(code: string) {
+  const [attempts, setAttempts] = useState(0);
+  const locked = attempts >= OTP_MAX_ATTEMPTS;
+
+  /** Vérification locale : le code doit être égal à OTP_CODE (1234). */
+  function verify(code: string) {
+    if (locked) return setError("Trop de tentatives. Revenez à l'étape précédente et recommencez.");
     if (code.length !== OTP_LENGTH) return setError(`Saisissez les ${OTP_LENGTH} chiffres du code`);
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await api<{ token: string; expiresAt: number }>("/api/otp/verify", { body: { msisdn: state.msisdn, code } });
-      dispatch({ type: "session", msisdn: state.msisdn, token: res.token, expiresAt: res.expiresAt });
+    if (code === OTP_CODE) {
+      setError(null);
+      dispatch({ type: "session", msisdn: state.msisdn, token: new Date().toISOString(), expiresAt: Date.now() + 45 * 60 * 1000 });
       next();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Code invalide");
-      setDigits(Array(OTP_LENGTH).fill(""));
-      inputs.current[0]?.focus();
-    } finally {
-      setLoading(false);
+      return;
     }
+    const used = attempts + 1;
+    setAttempts(used);
+    setError(
+      used >= OTP_MAX_ATTEMPTS
+        ? "Trop de tentatives. Revenez à l'étape précédente et recommencez."
+        : `Code incorrect. ${OTP_MAX_ATTEMPTS - used} tentative(s) restante(s).`,
+    );
+    setDigits(Array(OTP_LENGTH).fill(""));
+    inputs.current[0]?.focus();
   }
 
   function update(index: number, raw: string) {
@@ -128,18 +134,14 @@ export function OtpStep() {
     setError(null);
     const focusIdx = Math.min(index + chars.length, OTP_LENGTH - 1);
     inputs.current[focusIdx]?.focus();
-    if (nextDigits.every(Boolean)) void verify(nextDigits.join(""));
+    if (nextDigits.every(Boolean)) verify(nextDigits.join(""));
   }
 
-  async function resend() {
-    setResent(false);
-    try {
-      await api("/api/otp/send", { body: { msisdn: state.msisdn } });
-      setCooldown(OTP_RESEND_SECONDS);
-      setResent(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Envoi impossible");
-    }
+  function resend() {
+    setCooldown(OTP_RESEND_SECONDS);
+    setAttempts(0);
+    setError(null);
+    setResent(true);
   }
 
   return (
@@ -151,9 +153,8 @@ export function OtpStep() {
         </>
       }
       onBack={back}
-      onNext={() => void verify(digits.join(""))}
+      onNext={() => verify(digits.join(""))}
       nextLabel="Valider"
-      loading={loading}
     >
       <div className="flex justify-center gap-3" role="group" aria-label="Code de vérification">
         {digits.map((d, i) => (
