@@ -212,7 +212,7 @@ export function DoneStep() {
       </div>
       <div className="space-y-2">
         <h2 className="text-xl font-black">Dossier soumis avec succès</h2>
-        <p className="text-muted">
+        <p className="text-sm text-muted">
           Merci ! Votre identification est en cours de vérification. Vous recevrez un SMS au {formatMsisdn(state.msisdn)} dès
           qu&apos;elle sera validée.
         </p>

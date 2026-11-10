@@ -137,6 +137,7 @@ export async function createRecord(s: Submission, otpVerifiedAt: string): Promis
     history: [...(existing?.history ?? []), { at: now, status: "PENDING", by: "abonné (self-KYC)", note: "Dossier soumis" }],
   };
 
+  // Le dossier reste PENDING : la validation se fait depuis le back-office.
   await run("readwrite", (st) => st.put(record));
   return record;
 }
