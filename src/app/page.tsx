@@ -24,8 +24,8 @@ export default function HomePage() {
           <div aria-hidden className="absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-black/10" />
           <div className="relative mx-auto max-w-5xl px-4 py-14 sm:py-20">
             <p className="text-sm font-extrabold tracking-widest uppercase opacity-90">Airtel RDC · Self KYC</p>
-            <h1 className="mt-3 max-w-2xl text-4xl leading-tight font-black sm:text-5xl">
-              Identifiez votre SIM vous-même, en 5 minutes.
+            <h1 className="mt-3 max-w-2xl text-3xl leading-tight font-black sm:text-4xl">
+              Identifiez votre SIM vous-même, en moins de 5 minutes.
             </h1>
             <p className="mt-4 max-w-xl text-lg opacity-95">
               Sans file d&apos;attente : munissez-vous de votre nouvelle carte SIM et de votre pièce d&apos;identité.
