@@ -76,13 +76,36 @@ function newReference(): string {
   return `KYC-${date}-${rand.toUpperCase()}`;
 }
 
-/** Bloque un nouveau parcours si le numéro est déjà en cours ou approuvé. */
-export async function assertCanStart(msisdn: string) {
+/** Un numéro est attribuable s'il n'a aucun dossier, ou seulement un dossier rejeté. */
+export async function isNumberAvailable(msisdn: string): Promise<boolean> {
   const existing = await getRecord(msisdn);
-  if (existing && existing.status !== "REJECTED") throw new KycConflictError(existing.status, existing.reference);
+  return !existing || existing.status === "REJECTED";
 }
 
-export async function createRecord(s: Submission, otpVerifiedAt: string): Promise<KycRecord> {
+/**
+ * Propose un numéro libre par préfixe (ex. 096…, 097…, 099…).
+ * Démo : tirage aléatoire local, en excluant les numéros déjà attribués dans ce navigateur
+ * et ceux passés dans `exclude` (numéros secondaires saisis, propositions précédentes).
+ * En production, ce stock viendrait du système d'attribution des numéros (HLR / provisioning).
+ */
+export async function proposeNumbers(prefixes: readonly string[], exclude: readonly string[] = []): Promise<string[]> {
+  const taken = new Set([...(await listRecords()).filter((r) => r.status !== "REJECTED").map((r) => r.msisdn), ...exclude]);
+  const out: string[] = [];
+  for (const prefix of prefixes) {
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const [n] = crypto.getRandomValues(new Uint32Array(1));
+      const msisdn = `243${prefix}${String(n! % 10_000_000).padStart(7, "0")}`;
+      if (!taken.has(msisdn)) {
+        taken.add(msisdn);
+        out.push(msisdn);
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+export async function createRecord(s: Submission, numberAssignedAt: string): Promise<KycRecord> {
   const existing = await getRecord(s.msisdn);
   if (existing && existing.status !== "REJECTED") throw new KycConflictError(existing.status, existing.reference);
 
@@ -95,7 +118,7 @@ export async function createRecord(s: Submission, otpVerifiedAt: string): Promis
     status: "PENDING",
     createdAt: now,
     updatedAt: now,
-    otpVerifiedAt,
+    numberAssignedAt,
     wantsAirtelMoney: s.identity.wantsAirtelMoney,
     identity: { idType: s.identity.idType, idNumber: s.identity.idNumber.toUpperCase() },
     personal: {

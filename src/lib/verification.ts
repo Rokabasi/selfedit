@@ -1,4 +1,5 @@
 import { LIVENESS_CHALLENGE_COUNT, MIN_AGE, getIdType } from "./constants";
+import { formatMsisdn, isAirtelMsisdn } from "./phone";
 import { ageFrom } from "./schemas";
 import type { KycRecord, VerificationCheck } from "./types";
 
@@ -6,6 +7,20 @@ import type { KycRecord, VerificationCheck } from "./types";
  * Contrôles du dossier, exécutés localement. L'authentification documentaire
  * accepte toutes les pièces (démo) : à remplacer par un fournisseur (OCR/MRZ, face match…).
  */
+function numberCheck(record: KycRecord): VerificationCheck {
+  // Les dossiers importés de l'ancien parcours (OTP) restent valides.
+  const assignedAt = record.numberAssignedAt ?? record.otpVerifiedAt;
+  return {
+    id: "number",
+    label: "Attribution du numéro Airtel",
+    passed: isAirtelMsisdn(record.msisdn) && Boolean(assignedAt),
+    blocking: true,
+    detail: assignedAt
+      ? `${formatMsisdn(record.msisdn)} · ${record.numberAssignedAt ? "choisi" : "OTP validé"} le ${new Date(assignedAt).toLocaleString("fr-FR")}`
+      : "Date d'attribution manquante",
+  };
+}
+
 export function runChecks(record: KycRecord, all: KycRecord[]): VerificationCheck[] {
   const idType = getIdType(record.identity.idType);
   const age = ageFrom(record.personal.birthDate);
@@ -15,13 +30,7 @@ export function runChecks(record: KycRecord, all: KycRecord[]): VerificationChec
   ).length;
 
   return [
-    {
-      id: "otp",
-      label: "Possession de la SIM (OTP)",
-      passed: Boolean(record.otpVerifiedAt),
-      blocking: true,
-      detail: `OTP validé le ${new Date(record.otpVerifiedAt).toLocaleString("fr-FR")}`,
-    },
+    numberCheck(record),
     {
       id: "document_capture",
       label: "Capture de la pièce d'identité",

@@ -5,11 +5,11 @@ import { useMemo, useState } from "react";
 import { Alert, Button, CheckboxCard, StatusBadge } from "@/components/ui/primitives";
 import { useZodForm } from "@/lib/client/use-zod-form";
 import { CONSENT_VERSION, LIVENESS_CHALLENGES, getIdType } from "@/lib/constants";
-import { createRecord } from "@/lib/kyc-db";
+import { createRecord, isNumberAvailable } from "@/lib/kyc-db";
 import { formatMsisdn, normalizeMsisdn } from "@/lib/phone";
 import { consentSchemaFor, flattenIssues, submissionSchema, type ConsentInput } from "@/lib/schemas";
 import { LegalText } from "../legal-text";
-import { useKyc, type StepId } from "../kyc-store";
+import { isReservationValid, useKyc, type StepId } from "../kyc-store";
 import { StepLayout } from "../step-layout";
 
 /* ------------------------------ Consentement ------------------------------- */
@@ -58,8 +58,12 @@ export function ReviewStep() {
     setLoading(true);
     setError(null);
     try {
-      if (!state.token || !state.tokenExpiresAt || state.tokenExpiresAt < Date.now()) {
-        setError({ message: "Votre session a expiré. Veuillez revalider votre numéro.", sessionExpired: true });
+      if (!state.msisdn || !isReservationValid(state.reservation)) {
+        setError({ message: "La réservation de votre numéro a expiré. Choisissez à nouveau votre numéro.", sessionExpired: true });
+        return;
+      }
+      if (!(await isNumberAvailable(state.msisdn))) {
+        setError({ message: "Ce numéro a été attribué entre-temps. Choisissez un autre numéro.", sessionExpired: true });
         return;
       }
       // Validation complète du dossier puis enregistrement local (aucune requête réseau).
@@ -76,7 +80,7 @@ export function ReviewStep() {
         setError({ message: "Certaines informations sont invalides", fields: flattenIssues(parsed.error) });
         return;
       }
-      const record = await createRecord(parsed.data, state.token);
+      const record = await createRecord(parsed.data, state.reservation.at);
       dispatch({ type: "result", value: { reference: record.reference, status: record.status, createdAt: record.createdAt } });
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Erreur inattendue. Réessayez." });
@@ -98,7 +102,7 @@ export function ReviewStep() {
       loading={loading}
       asForm={false}
     >
-      <ReviewCard title="Ligne" onEdit={undefined}>
+      <ReviewCard title="Ligne" onEdit={() => edit("number")}>
         <Row label="Numéro" value={formatMsisdn(state.msisdn)} />
         <Row label="Airtel Money" value={state.identity.wantsAirtelMoney ? "Oui, ouvrir un compte" : "Non"} />
       </ReviewCard>
@@ -106,6 +110,11 @@ export function ReviewStep() {
       <ReviewCard title="Pièce d'identité" onEdit={() => edit("identity")}>
         <Row label="Type" value={idType?.label} />
         <Row label="Numéro" value={state.identity.idNumber} mono />
+      </ReviewCard>
+
+      <ReviewCard title="Carte SIM" onEdit={() => edit("sim")}>
+        <Row label="ICCID" value={state.sim.iccid.replace(/(\d{4})(?=\d)/g, "$1 ")} mono />
+        <Row label="PUK" value={`••••••${state.sim.puk.slice(-2)}`} mono />
       </ReviewCard>
 
       <ReviewCard title="Informations personnelles" onEdit={() => edit("personal")}>
@@ -117,11 +126,6 @@ export function ReviewStep() {
         <Row label="Email" value={p.email || "—"} />
         <Row label="Autres numéros" value={altPhones.length ? altPhones.join(" · ") : "—"} />
         <Row label="Adresse" value={[p.address, p.village, p.city, `District ${p.district}`].filter(Boolean).join(", ")} />
-      </ReviewCard>
-
-      <ReviewCard title="Carte SIM" onEdit={() => edit("sim")}>
-        <Row label="ICCID" value={state.sim.iccid.replace(/(\d{4})(?=\d)/g, "$1 ")} mono />
-        <Row label="PUK" value={`••••••${state.sim.puk.slice(-2)}`} mono />
       </ReviewCard>
 
       <ReviewCard title="Documents & vérification" onEdit={() => edit("document")}>
@@ -151,8 +155,15 @@ export function ReviewStep() {
             </ul>
           )}
           {error.sessionExpired && (
-            <button type="button" className="mt-2 font-bold underline" onClick={() => goTo("phone")}>
-              Revalider mon numéro
+            <button
+              type="button"
+              className="mt-2 font-bold underline"
+              onClick={() => {
+                dispatch({ type: "releaseNumber" });
+                goTo("number", { fromReview: true });
+              }}
+            >
+              Choisir un nouveau numéro
             </button>
           )}
         </Alert>

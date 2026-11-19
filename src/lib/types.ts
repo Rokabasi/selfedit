@@ -27,7 +27,10 @@ export interface KycRecord {
   status: KycStatus;
   createdAt: string;
   updatedAt: string;
-  otpVerifiedAt: string;
+  /** Date à laquelle l'abonné a choisi (réservé) son numéro dans le parcours. */
+  numberAssignedAt: string;
+  /** @deprecated Ancien parcours avec OTP : présent uniquement sur les dossiers importés antérieurs. */
+  otpVerifiedAt?: string;
   wantsAirtelMoney: boolean;
   identity: { idType: IdType; idNumber: string };
   personal: {

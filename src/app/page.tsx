@@ -2,8 +2,8 @@ import Link from "next/link";
 import { AppHeader } from "@/components/ui/brand";
 
 const STEPS = [
-  { n: "1", title: "Validez votre numéro", text: "Recevez un code par SMS sur votre nouvelle SIM." },
-  { n: "2", title: "Renseignez vos informations", text: "Identité, adresse et codes de la carte SIM." },
+  { n: "1", title: "Renseignez vos informations", text: "Pièce d'identité, adresse et codes de la carte SIM." },
+  { n: "2", title: "Choisissez votre numéro", text: "Parmi plusieurs numéros Airtel disponibles (096, 097, 099)." },
   { n: "3", title: "Scannez votre pièce", text: "Carte d'électeur, passeport, permis…" },
   { n: "4", title: "Vérifiez votre visage", text: "Quelques mouvements simples devant la caméra." },
 ];
@@ -56,7 +56,7 @@ export default function HomePage() {
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {[
-              ["📶", "SIM insérée", "La nouvelle SIM doit être dans le téléphone pour recevoir le code."],
+              ["📶", "SIM à portée de main", "Gardez le support de la SIM : l'ICCID et le PUK y sont imprimés."],
               ["🪪", "Pièce valide", "Une pièce d'identité en cours de validité, en bon état."],
               ["💡", "Bon éclairage", "Un endroit lumineux pour le scan et la vérification du visage."],
             ].map(([icon, title, text]) => (

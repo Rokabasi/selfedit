@@ -20,8 +20,9 @@ export function IdentityStep() {
     next();
   }
 
+  // Première étape du parcours : pas de retour, sauf en modification depuis le récapitulatif.
   return (
-    <StepLayout title="Votre pièce d'identité" description="Choisissez la pièce que vous allez scanner." onBack={back} onNext={submit}>
+    <StepLayout title="Votre pièce d'identité" description="Choisissez la pièce que vous allez scanner." onBack={state.returnToReview ? back : undefined} onNext={submit}>
       <CheckboxCard
         checked={values.wantsAirtelMoney}
         onChange={(v) => set("wantsAirtelMoney", v)}

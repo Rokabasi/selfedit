@@ -7,7 +7,7 @@ import {
   MIN_AGE,
   getIdType,
 } from "./constants";
-import { normalizeMsisdn } from "./phone";
+import { isAirtelMsisdn, normalizeMsisdn } from "./phone";
 
 /* ----------------------------------------------------------------------------
  * Schémas partagés client / serveur. Le client valide chaque étape,
@@ -137,7 +137,10 @@ export const consentSchemaFor = (wantsAirtelMoney: boolean) =>
 
 export const submissionSchema = z
   .object({
-    msisdn: z.string().regex(/^243\d{9}$/),
+    msisdn: z
+      .string()
+      .regex(/^243\d{9}$/, "Choisissez votre numéro Airtel")
+      .refine(isAirtelMsisdn, "Le numéro choisi n'est pas un numéro Airtel"),
     identity: identitySchema,
     personal: personalSchema,
     sim: simSchema,
@@ -155,7 +158,7 @@ export const submissionSchema = z
     for (const key of ["altPhone1", "altPhone2"] as const) {
       const v = s.personal[key];
       if (v && normalizeMsisdn(v) === s.msisdn) {
-        ctx.addIssue({ code: "custom", path: ["personal", key], message: "Le numéro secondaire doit être différent" });
+        ctx.addIssue({ code: "custom", path: ["personal", key], message: "Le numéro secondaire doit être différent du numéro Airtel choisi" });
       }
     }
   });

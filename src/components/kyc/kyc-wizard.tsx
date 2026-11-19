@@ -2,10 +2,10 @@
 
 import { formatMsisdn } from "@/lib/phone";
 import { KycProvider, PROGRESS_STEPS, useKyc } from "./kyc-store";
-import { OtpStep, PhoneStep } from "./steps/auth-steps";
 import { DocumentStep, LivenessStep } from "./steps/capture-steps";
 import { ConsentStep, DoneStep, ReviewStep } from "./steps/final-steps";
 import { IdentityStep, PersonalStep, SimStep } from "./steps/form-steps";
+import { NumberStep } from "./steps/number-step";
 
 export function KycWizard() {
   return (
@@ -27,7 +27,7 @@ function WizardBody() {
             <span className="text-airtel">
               Étape {progressIndex + 1}/{PROGRESS_STEPS.length} · {PROGRESS_STEPS[progressIndex]!.label}
             </span>
-            <span className="text-muted">{formatMsisdn(state.msisdn)}</span>
+            {state.msisdn && <span className="text-muted">{formatMsisdn(state.msisdn)}</span>}
           </div>
           <div className="flex gap-1" role="progressbar" aria-valuemin={1} aria-valuemax={PROGRESS_STEPS.length} aria-valuenow={progressIndex + 1}>
             {PROGRESS_STEPS.map((s, i) => (
@@ -38,11 +38,10 @@ function WizardBody() {
       )}
 
       <div className="rounded-card bg-white p-5 shadow-[0_8px_30px_-12px_rgb(0_0_0/0.15)] sm:p-7">
-        {state.step === "phone" && <PhoneStep />}
-        {state.step === "otp" && <OtpStep />}
         {state.step === "identity" && <IdentityStep />}
         {state.step === "personal" && <PersonalStep />}
         {state.step === "sim" && <SimStep />}
+        {state.step === "number" && <NumberStep />}
         {state.step === "document" && <DocumentStep />}
         {state.step === "liveness" && <LivenessStep />}
         {state.step === "consent" && <ConsentStep />}

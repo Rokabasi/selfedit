@@ -8,24 +8,29 @@ import type { KycStatus } from "@/lib/types";
 /* --------------------------------- Étapes ---------------------------------- */
 
 export type StepId =
-  | "phone"
-  | "otp"
   | "identity"
   | "personal"
   | "sim"
+  | "number"
   | "document"
   | "liveness"
   | "consent"
   | "review"
   | "done";
 
-const ORDER: StepId[] = ["phone", "otp", "identity", "personal", "sim", "document", "liveness", "consent", "review", "done"];
+/**
+ * Ordre du parcours : source unique de vérité (navigation, progression, reprise après rechargement).
+ * Les informations personnelles précèdent le choix du numéro : les numéros secondaires saisis
+ * sont exclus des numéros proposés.
+ */
+const ORDER: StepId[] = ["identity", "sim", "personal", "number", "document", "liveness", "consent", "review", "done"];
 
-/** Étapes affichées dans la barre de progression (après validation OTP). */
+/** Étapes affichées dans la barre de progression. */
 export const PROGRESS_STEPS: { id: StepId; label: string }[] = [
   { id: "identity", label: "Pièce d'identité" },
-  { id: "personal", label: "Informations personnelles" },
   { id: "sim", label: "Carte SIM" },
+  { id: "personal", label: "Informations personnelles" },
+  { id: "number", label: "Choix du numéro" },
   { id: "document", label: "Scan de la pièce" },
   { id: "liveness", label: "Vérification du visage" },
   { id: "consent", label: "Consentement" },
@@ -40,9 +45,12 @@ export interface KycState {
   step: StepId;
   /** Vrai quand l'utilisateur modifie une section depuis le récapitulatif. */
   returnToReview: boolean;
+  /** Numéro Airtel choisi (243XXXXXXXXX), vide tant que l'étape « number » n'est pas validée. */
   msisdn: string;
-  token: string | null;
-  tokenExpiresAt: number | null;
+  /** Numéros proposés à l'abonné, conservés pour rester stables (retour arrière, rechargement). */
+  numberOptions: string[];
+  /** Réservation du numéro choisi : remplace l'ancienne session OTP. */
+  reservation: { at: string; expiresAt: number } | null;
   identity: IdentityForm;
   personal: PersonalInput;
   sim: SimInput;
@@ -53,11 +61,11 @@ export interface KycState {
 }
 
 const initialState: KycState = {
-  step: "phone",
+  step: "identity",
   returnToReview: false,
   msisdn: "",
-  token: null,
-  tokenExpiresAt: null,
+  numberOptions: [],
+  reservation: null,
   identity: { wantsAirtelMoney: false, idType: "", idNumber: "" },
   personal: {
     lastName: "",
@@ -82,8 +90,9 @@ const initialState: KycState = {
 
 type Action =
   | { type: "goto"; step: StepId; returnToReview?: boolean }
-  | { type: "session"; msisdn: string; token: string; expiresAt: number }
-  | { type: "msisdn"; msisdn: string }
+  | { type: "numberOptions"; value: string[] }
+  | { type: "selectNumber"; msisdn: string; reservedAt: string; expiresAt: number }
+  | { type: "releaseNumber" }
   | { type: "identity"; value: IdentityForm }
   | { type: "personal"; value: PersonalInput }
   | { type: "sim"; value: SimInput }
@@ -98,13 +107,13 @@ function reducer(state: KycState, action: Action): KycState {
   switch (action.type) {
     case "goto":
       return { ...state, step: action.step, returnToReview: action.returnToReview ?? state.returnToReview };
-    case "msisdn":
-      // Changement de numéro ⇒ on repart d'un dossier vierge.
-      return state.msisdn && state.msisdn !== action.msisdn
-        ? { ...initialState, step: state.step, msisdn: action.msisdn }
-        : { ...state, msisdn: action.msisdn };
-    case "session":
-      return { ...state, msisdn: action.msisdn, token: action.token, tokenExpiresAt: action.expiresAt };
+    case "numberOptions":
+      return { ...state, numberOptions: action.value };
+    case "selectNumber":
+      // Le numéro est choisi après la saisie du dossier : en changer ne remet rien d'autre à zéro.
+      return { ...state, msisdn: action.msisdn, reservation: { at: action.reservedAt, expiresAt: action.expiresAt } };
+    case "releaseNumber":
+      return { ...state, msisdn: "", reservation: null, numberOptions: [] };
     case "identity": {
       // Le type de pièce conditionne le verso et la photo : on invalide le scan si on change de type.
       const typeChanged = state.identity.idType !== action.value.idType;
@@ -136,7 +145,12 @@ function reducer(state: KycState, action: Action): KycState {
 
 /* ------------------------------ Persistance -------------------------------- */
 
-const STORAGE_KEY = "airtel-selfkyc:v1";
+// v2 : nouveau parcours (choix du numéro au lieu de la saisie + OTP).
+const STORAGE_KEY = "airtel-selfkyc:v2";
+
+export function isReservationValid(r: KycState["reservation"], now = Date.now()): r is NonNullable<KycState["reservation"]> {
+  return Boolean(r && r.expiresAt > now);
+}
 
 /**
  * On persiste uniquement les données texte en sessionStorage (onglet courant) :
@@ -149,12 +163,18 @@ function persistable(s: KycState) {
 
 function sanitizeHydrated(saved: Partial<KycState>): Partial<KycState> {
   const out = { ...saved };
-  if (!out.token || !out.tokenExpiresAt || out.tokenExpiresAt < Date.now()) {
-    return { msisdn: out.msisdn ?? "", step: "phone" };
+  if (!out.step || !ORDER.includes(out.step)) out.step = "identity";
+  if (out.step === "done") return out.result ? out : { step: "identity" };
+
+  // Réservation expirée : on conserve le dossier saisi et on refait choisir le numéro.
+  if (!isReservationValid(out.reservation ?? null)) {
+    out.msisdn = "";
+    out.reservation = null;
+    out.numberOptions = [];
+    if (ORDER.indexOf(out.step) > ORDER.indexOf("number")) out.step = "number";
   }
-  const idx = ORDER.indexOf(out.step ?? "phone");
   // Images non persistées : revenir à la capture si nécessaire.
-  if (idx > ORDER.indexOf("document") && out.step !== "done") out.step = "document";
+  if (ORDER.indexOf(out.step) > ORDER.indexOf("document")) out.step = "document";
   return out;
 }
 

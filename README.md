@@ -22,10 +22,10 @@ La caméra n'est accessible qu'en contexte sécurisé : `localhost` ou HTTPS.
 
 ## Parcours
 
-1. Numéro Airtel (097/098/099) → OTP vérifié localement (code **1234**, 5 essais)
-2. Option Airtel Money, type et numéro de pièce
+1. Option Airtel Money, type et numéro de pièce
+2. ICCID et PUK de la SIM
 3. Nom, postnom (facultatif), prénom, lieu/date de naissance (≥ 18 ans), email (facultatif), 2 autres numéros (obligatoires), district, ville, village/quartier, adresse
-4. ICCID et PUK de la SIM
+4. Choix du numéro : 3 numéros libres proposés (un en 096, 097 et 099, `ASSIGNABLE_PREFIXES`), sélection par bouton radio, « Autres numéros » pour un nouveau tirage. Le numéro choisi est réservé 45 min (`NUMBER_RESERVATION_MS`) ; à expiration, l'abonné rechoisit sans perdre sa saisie.
 5. Scan de la pièce (recto/verso selon le type) : cadre caméra, analyse netteté/luminosité/reflets, animation d'authentification. **Tous les documents sont acceptés** (démo).
 6. Preuve de vie : MediaPipe Face Landmarker exécuté localement (`public/models`, `public/mediapipe`). Selfie puis 3 défis tirés au hasard parmi 5, avec retour à une position neutre entre chaque défi. Un mode guidé prend le relais si le modèle ne se charge pas.
 7. Consentements légaux (texte à faire valider par le juridique, versionné par `CONSENT_VERSION`)
@@ -35,14 +35,14 @@ Back-office : « Vérifier et approuver » lance les contrôles (`src/lib/verifi
 
 ## Stockage : aucune requête réseau
 
-L'application ne fait **aucun appel API**. L'OTP est comparé localement à `1234` (`OTP_CODE` dans `src/lib/constants.ts`). Les dossiers sont enregistrés dans le navigateur (IndexedDB, un enregistrement par numéro, PUK haché en SHA-256).
+L'application ne fait **aucun appel API**. Les numéros proposés sont tirés localement en excluant ceux qui ont déjà un dossier (`proposeNumbers` dans `src/lib/kyc-db.ts`). Les dossiers sont enregistrés dans le navigateur (IndexedDB, un enregistrement par numéro, PUK haché en SHA-256).
 
 - Le back-office lit le stockage **du même navigateur**.
 - Chaque dossier s'exporte en fichier `<msisdn>.json` (bouton « JSON » / « Télécharger »). Les fichiers se réimportent sur un autre poste (« Importer des fichiers »).
 
 ## Avant la production
 
-- Brancher une vraie passerelle SMS/OTP et un stockage serveur centralisé
+- Brancher le stock de numéros sur le système d'attribution (réservation côté serveur) et un stockage centralisé
 - Remplacer l'authentification documentaire simulée par un fournisseur (OCR/MRZ, face match)
 - Ajouter le logo et la police officiels Airtel (`src/components/ui/brand.tsx`)
 - Remplacer le Basic Auth par le SSO interne

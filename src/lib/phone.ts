@@ -25,6 +25,12 @@ export function formatMsisdn(msisdn: string): string {
   return m ? `+243 ${m[1]} ${m[2]} ${m[3]}` : msisdn;
 }
 
+/** 243991234567 → 099 123 4567 (format national, pour l'affichage compact). */
+export function formatNational(msisdn: string): string {
+  const m = /^243(\d{2})(\d{3})(\d{4})$/.exec(msisdn);
+  return m ? `0${m[1]} ${m[2]} ${m[3]}` : msisdn;
+}
+
 export function isValidMsisdn(value: string): boolean {
   return /^243\d{9}$/.test(value);
 }

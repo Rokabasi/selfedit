@@ -1,13 +1,13 @@
-export const OTP_LENGTH = 4;
-/** Code OTP accepté (aucune passerelle SMS : vérification locale). */
-export const OTP_CODE = "1234";
-export const OTP_MAX_ATTEMPTS = 5;
-export const OTP_RESEND_SECONDS = 30;
 export const MIN_AGE = 18;
 export const CONSENT_VERSION = "CGU-SELFKYC-2026.11";
 
 /** Préfixes mobiles Airtel RDC (format national sans le 0). */
-export const AIRTEL_PREFIXES = ["97", "98", "99"] as const;
+export const AIRTEL_PREFIXES = ["96", "97", "98", "99"] as const;
+
+/** Préfixes proposés à l'attribution d'un nouveau numéro : un numéro proposé par préfixe. */
+export const ASSIGNABLE_PREFIXES = ["96", "97", "99"] as const;
+/** Durée de réservation du numéro choisi, jusqu'à la soumission du dossier. */
+export const NUMBER_RESERVATION_MS = 45 * 60 * 1000;
 
 export const ID_TYPES = [
   { value: "CARTE_ELECTEUR", label: "Carte d'électeur", requiresBack: true },
